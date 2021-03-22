@@ -3,8 +3,8 @@
 # https://github.com/zzamboni/elvish-themes/blob/master/chain.org.
 # You should make any changes there and regenerate it from Emacs org-mode using C-c C-v t
 
-prompt-segments-defaults = [ su dir git-branch git-combined arrow ]
-rprompt-segments-defaults = [ ]
+prompt-segments-defaults = [ su dir git-branch git-combined " " ]
+rprompt-segments-defaults = [ hostinfo ]
 
 use re
 use str
@@ -17,17 +17,23 @@ prompt-segments = $prompt-segments-defaults
 rprompt-segments = $rprompt-segments-defaults
 
 default-glyph = [
-  &git-branch=    "⎇"
-  &git-dirty=     "●"
-  &git-ahead=     "⬆"
-  &git-behind=    "⬇"
-  &git-staged=    "✔"
-  &git-untracked= "+"
-  &git-deleted=   "-"
-  &su=            "⚡"
-  &chain=         "─"
-  &session=       "▪"
-  &arrow=         ">"
+  &git-branch=       "⎇ "
+  &git-dirty=        "● "
+  &git-ahead=        "⬆ "
+  &git-behind=       "⬇ "
+  &git-staged=       "✔ "
+  &git-untracked=    "+"
+  &git-deleted=      "-"
+  &su=               "⚡ "
+  &chain=            "─"
+  &session=          "▪"
+  &arrow=            "❱ "
+  &block-left-hard=  " "
+  &block-left-soft=  " "
+  &block-right-hard= " "
+  &block-right-soft= " "
+  &space=            " "
+  &hostinfo=         "::"
 ]
 
 default-segment-style = [
@@ -47,6 +53,8 @@ default-segment-style = [
   &dir=           [ cyan         ]
   &session=       [ session      ]
   &timestamp=     [ bright-black ]
+  &space=         [ default      ]
+  &hostinfo=      [ yellow       ]
 ]
 
 glyph = [&]
@@ -60,14 +68,15 @@ root-id = 0
 
 bold-prompt = $false
 
-show-last-chain = $true
+show-last-chain = $false
 
 space-after-arrow = $true
 
 git-get-timestamp = { git log -1 --date=short --pretty=format:%cd }
 
-prompt-segment-delimiters = "[]"
+# prompt-segment-delimiters = "[]"
 # prompt-segment-delimiters = [ "<<" ">>" ]
+prompt-segment-delimiters = [ " " " " ]
 
 fn -session-color {
   valid-colors = [ red green yellow blue magenta cyan white bright-black bright-red bright-green bright-yellow bright-blue bright-magenta bright-cyan bright-white ]
@@ -75,6 +84,23 @@ fn -session-color {
 }
 
 fn -colorized [what @color]{
+  if (and (not-eq $color []) (eq (kind-of $color[0]) list)) {
+    color = [(all $color[0])]
+  }
+  if (and (not-eq $color [default]) (not-eq $color [])) {
+    if (eq $color [session]) {
+      color = [(-session-color)]
+    }
+    if $bold-prompt {
+      color = [ $@color bold ]
+    }
+    styled $what $@color inverse
+  } else {
+    put $what
+  }
+}
+
+fn -dcolorized [what @color]{
   if (and (not-eq $color []) (eq (kind-of $color[0]) list)) {
     color = [(all $color[0])]
   }
@@ -109,6 +135,10 @@ fn -segment-style [segment-name]{
 
 fn -colorized-glyph [segment-name @extra-text]{
   -colorized (-glyph $segment-name)(str:join "" $extra-text) (-segment-style $segment-name)
+}
+
+fn -dcolorized-glyph [segment-name @extra-text]{
+  -dcolorized (-glyph $segment-name)(str:join "" $extra-text) (-segment-style $segment-name)
 }
 
 fn prompt-segment [segment-or-style @texts]{
@@ -184,11 +214,11 @@ each [ind]{
 
 segment[git-combined] = {
   indicators = [(each [ind]{
-        if (-show-git-indicator git-$ind) { -colorized-glyph git-$ind }
+        if (-show-git-indicator git-$ind) { -dcolorized-glyph git-$ind }
   } $-git-indicator-segments)]
   if (> (count $indicators) 0) {
     color = (-segment-style git-combined)
-    put (-colorized $prompt-segment-delimiters[0] $color) $@indicators (-colorized $prompt-segment-delimiters[1] $color)
+    put (-dcolorized $prompt-segment-delimiters[0] $color) $@indicators (-dcolorized $prompt-segment-delimiters[1] $color)
   }
 }
 
@@ -224,6 +254,14 @@ segment[arrow] = {
   end-text = ''
   if $space-after-arrow { end-text = ' ' }
   -colorized-glyph arrow $end-text
+}
+
+segment[space] = {
+  prompt-segment space " "
+}
+
+segment[hostinfo] = {
+  prompt-segment hostinfo (whoami)@(hostname)
 }
 
 fn -interpret-segment [seg]{
@@ -264,7 +302,8 @@ fn -build-chain [segments]{
     if (> (count $output) 0) {
       if (not $first) {
         if (or $show-last-chain (not-eq $seg $segments[-1])) {
-          -colorized-glyph chain
+          ### uncomment to enable chain
+          # -colorized-glyph chain
         }
       }
       put $@output
