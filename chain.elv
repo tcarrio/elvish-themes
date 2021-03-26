@@ -33,7 +33,7 @@ default-glyph = [
   &block-right-hard= " "
   &block-right-soft= " "
   &space=            " "
-  &hostinfo=         "❰"
+  &hostinfo=         "◀ "
 ]
 
 default-segment-style = [
